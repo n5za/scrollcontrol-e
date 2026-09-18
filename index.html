@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ScrollControl — Your life. Your scroll. Your control.</title>
+  <meta name="description" content="Chrome extension to control YouTube Shorts and Instagram Reels consumption with daily limits, time schedules, and usage tracking." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --bg: #0a0a0f;
+      --bg-surface: #12121a;
+      --bg-card: #1a1a25;
+      --border: #2a2a3a;
+      --text: #e4e4ed;
+      --text-muted: #8888a0;
+      --accent: #6c5ce7;
+      --accent-light: #a29bfe;
+      --danger: #ff6b6b;
+      --success: #51cf66;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Hero */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 800px;
+      background: radial-gradient(circle, rgba(108,92,231,0.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 32px;
+    }
+
+    .badge-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--success);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    h1 {
+      font-size: clamp(48px, 8vw, 80px);
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 24px;
+      letter-spacing: -0.03em;
+    }
+
+    h1 .gradient {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      font-size: 20px;
+      color: var(--text-muted);
+      max-width: 500px;
+      margin-bottom: 48px;
+    }
+
+    .cta-group {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 16px 32px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-light);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(108,92,231,0.3);
+    }
+
+    .btn-secondary {
+      background: var(--bg-card);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    /* Features */
+    .features {
+      padding: 120px 0;
+    }
+
+    .features-header {
+      text-align: center;
+      margin-bottom: 64px;
+    }
+
+    .features-header h2 {
+      font-size: 40px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .features-header p {
+      color: var(--text-muted);
+      font-size: 18px;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+    }
+
+    .feature-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      transition: all 0.3s;
+    }
+
+    .feature-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(108,92,231,0.1);
+    }
+
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+
+    .feature-card h3 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .feature-card p {
+      color: var(--text-muted);
+      font-size: 15px;
+    }
+
+    /* Privacy */
+    .privacy {
+      padding: 120px 0;
+      text-align: center;
+    }
+
+    .privacy h2 {
+      font-size: 40px;
+      font-weight: 700;
+      margin-bottom: 48px;
+    }
+
+    .privacy-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 32px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .privacy-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .privacy-icon {
+      width: 56px;
+      height: 56px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+
+    .privacy-item h3 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .privacy-item p {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    /* Install */
+    .install {
+      padding: 120px 0;
+    }
+
+    .install-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 64px;
+      text-align: center;
+    }
+
+    .install-card h2 {
+      font-size: 36px;
+      font-weight: 700;
+      margin-bottom: 24px;
+    }
+
+    .install-card p {
+      color: var(--text-muted);
+      font-size: 18px;
+      max-width: 500px;
+      margin: 0 auto 32px;
+    }
+
+    .install-steps {
+      text-align: left;
+      max-width: 400px;
+      margin: 0 auto 32px;
+    }
+
+    .install-step {
+      display: flex;
+      gap: 16px;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .install-step:last-child {
+      border-bottom: none;
+    }
+
+    .step-num {
+      width: 28px;
+      height: 28px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .step-text {
+      font-size: 15px;
+      color: var(--text-muted);
+    }
+
+    /* Footer */
+    .footer {
+      padding: 48px 0;
+      text-align: center;
+      border-top: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .footer a {
+      color: var(--accent-light);
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <section class="hero">
+    <div class="badge">
+      <span class="badge-dot"></span>
+      Chrome Extension · Manifest V3
+    </div>
+    <h1>
+      Your life.<br />
+      Your <span class="gradient">scroll</span>.<br />
+      Your control.
+    </h1>
+    <p class="subtitle">
+      Take control of YouTube Shorts and Instagram Reels with daily limits, time schedules, and usage tracking.
+    </p>
+    <div class="cta-group">
+      <a href="#install" class="btn btn-primary">
+        Install Extension
+      </a>
+      <a href="https://github.com/your-username/scrollcontrol" class="btn btn-secondary" target="_blank">
+        View on GitHub
+      </a>
+    </div>
+  </section>
+
+  <section class="features">
+    <div class="container">
+      <div class="features-header">
+        <h2>Everything you need</h2>
+        <p>Simple, powerful tools to manage your screen time</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🎯</div>
+          <h3>Daily Limits</h3>
+          <p>Set maximum Shorts/Reels per day and time limits per platform. Automatic blocking when you reach your goals.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⏰</div>
+          <h3>Time Scheduling</h3>
+          <p>Define allowed hours for short-form content. Quick presets for Study Mode, Work Mode, and Evening Only.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⚡</div>
+          <h3>Quick Actions</h3>
+          <p>Pause tracking, block content immediately, or override limits when you need to. Always in control.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <h3>Usage Tracking</h3>
+          <p>Real-time stats per platform with daily, weekly, and monthly breakdowns. See your patterns clearly.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔒</div>
+          <h3>Privacy First</h3>
+          <p>100% local. No data ever leaves your browser. No analytics, no accounts, no tracking.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🎨</div>
+          <h3>Beautiful Design</h3>
+          <p>Dark-first UI inspired by Raycast and Linear. Clean, fast, and pleasant to use every day.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="privacy">
+    <div class="container">
+      <h2>Your data stays yours</h2>
+      <div class="privacy-grid">
+        <div class="privacy-item">
+          <div class="privacy-icon">🏠</div>
+          <h3>100% Local</h3>
+          <p>All data stored in your browser</p>
+        </div>
+        <div class="privacy-item">
+          <div class="privacy-icon">🚫</div>
+          <h3>No Tracking</h3>
+          <p>Zero analytics or telemetry</p>
+        </div>
+        <div class="privacy-item">
+          <div class="privacy-icon">👤</div>
+          <h3>No Accounts</h3>
+          <p>No sign-up required</p>
+        </div>
+        <div class="privacy-item">
+          <div class="privacy-icon">📖</div>
+          <h3>Open Source</h3>
+          <p>Fully auditable code</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="install" id="install">
+    <div class="container">
+      <div class="install-card">
+        <h2>Install ScrollControl</h2>
+        <p>Get started in under a minute</p>
+        <div class="install-steps">
+          <div class="install-step">
+            <div class="step-num">1</div>
+            <div class="step-text">Open <strong>chrome://extensions</strong> in Chrome</div>
+          </div>
+          <div class="install-step">
+            <div class="step-num">2</div>
+            <div class="step-text">Enable <strong>Developer mode</strong> in the top right</div>
+          </div>
+          <div class="install-step">
+            <div class="step-num">3</div>
+            <div class="step-text">Click <strong>Load unpacked</strong> and select the <code>dist</code> folder</div>
+          </div>
+        </div>
+        <a href="https://github.com/your-username/scrollcontrol" class="btn btn-primary" target="_blank">
+          Download from GitHub
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container">
+      <p>Built with care. <a href="https://github.com/your-username/scrollcontrol">View source on GitHub</a></p>
+    </div>
+  </footer>
+</body>
+</html>
