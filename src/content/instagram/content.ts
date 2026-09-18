@@ -6,6 +6,7 @@ let currentSessionId: string | null = null;
 let activeSeconds = 0;
 let activeTimer: ReturnType<typeof setInterval> | null = null;
 let lastContentId: string | null = null;
+let blockedContentId: string | null = null;
 
 function isReelsUrl(url: string): boolean {
   return /instagram\.com\/reels?\/[\w-]+/.test(url) || /instagram\.com\/reel\/[\w-]+/.test(url);
@@ -218,6 +219,7 @@ function removeBlockOverlay() {
 async function checkAndEnforce() {
   const content = detectContent();
   if (!content) {
+    blockedContentId = null;
     if (lastContentId) {
       stopTracking();
     }
@@ -230,6 +232,7 @@ async function checkAndEnforce() {
   });
 
   if (response && !response.allowed) {
+    if (blockedContentId === content.id) return;
     let reasonText = "Reels are blocked right now.";
     let messageText = "You've reached your limit.";
     if (response.reason === "daily_limit") {
@@ -242,6 +245,7 @@ async function checkAndEnforce() {
       reasonText = "Reels are blocked right now.";
       messageText = `You can watch Reels during your allowed hours.${response.nextAllowedTime ? " Next: " + response.nextAllowedTime : ""}`;
     }
+    blockedContentId = content.id;
     showBlockOverlay(reasonText, messageText, response.nextAllowedTime);
     await chrome.runtime.sendMessage({
       type: MESSAGE_TYPES.BLOCK_CONTENT,
@@ -252,6 +256,7 @@ async function checkAndEnforce() {
   }
 
   removeBlockOverlay();
+  blockedContentId = null;
   startTracking(content.id);
 }
 
@@ -304,11 +309,13 @@ checkAndEnforce();
 chrome.runtime.onMessage.addListener((message) => {
   if (message.type === "SHOW_BLOCK_OVERLAY") {
     const { reason, message: msg, nextTime } = message.payload || {};
-    showBlockOverlay(
-      reason || "Blocked",
-      msg || "Content is blocked.",
-      nextTime
-    );
+    if (!document.getElementById(SCROLLCONTROL_OVERLAY_ID)) {
+      showBlockOverlay(
+        reason || "Blocked",
+        msg || "Content is blocked.",
+        nextTime
+      );
+    }
   } else if (message.type === "REMOVE_BLOCK_OVERLAY") {
     removeBlockOverlay();
   }

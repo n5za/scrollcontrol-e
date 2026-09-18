@@ -9,20 +9,6 @@ import type {
 } from "@/shared/types";
 import { MESSAGE_TYPES, HISTORY_RETENTION_DAYS } from "@/shared/constants";
 
-const seenContentCache = new Map<string, number>();
-const CACHE_TTL = 300000;
-
-function cleanupCache() {
-  const now = Date.now();
-  for (const [key, timestamp] of seenContentCache) {
-    if (now - timestamp > CACHE_TTL) {
-      seenContentCache.delete(key);
-    }
-  }
-}
-
-setInterval(cleanupCache, 60000);
-
 chrome.alarms.create("daily-reset", { periodInMinutes: 1 });
 chrome.alarms.create("cleanup-history", { periodInMinutes: 60 });
 chrome.alarms.create("check-expirations", { periodInMinutes: 1 });
@@ -149,11 +135,6 @@ async function handleMessage(
         platform: Platform;
         contentId: string;
       };
-      const sessionKey = `${sessionPayload.platform}:${sessionPayload.contentId}`;
-      if (seenContentCache.has(sessionKey)) {
-        return { duplicate: true };
-      }
-      seenContentCache.set(sessionKey, Date.now());
       await storage.incrementShortCount(sessionPayload.platform);
       const session: Session = {
         id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
@@ -171,14 +152,15 @@ async function handleMessage(
         sessionId: string;
         activeSeconds: number;
       };
-      const sessions = await storage.getSessions();
-      const session = sessions.find((s) => s.id === endPayload.sessionId);
-      if (session) {
-        session.endedAt = Date.now();
-        session.activeSeconds = endPayload.activeSeconds;
-        await storage.addSession({ ...session });
-        await storage.addActiveSeconds(endPayload.activeSeconds);
-      }
+      await storage.update((data) => {
+        const stored = data.sessions.find((s) => s.id === endPayload.sessionId);
+        if (stored) {
+          stored.endedAt = Date.now();
+          stored.activeSeconds = endPayload.activeSeconds;
+        }
+        return data;
+      });
+      await storage.addActiveSeconds(endPayload.activeSeconds);
       return { success: true };
     }
 
@@ -275,11 +257,7 @@ async function handleMessage(
         platform: Platform;
         contentId: string;
       };
-      const sessionKey = `${detectPayload.platform}:${detectPayload.contentId}`;
-      if (!seenContentCache.has(sessionKey)) {
-        seenContentCache.set(sessionKey, Date.now());
-        await storage.incrementShortCount(detectPayload.platform);
-      }
+      await storage.incrementShortCount(detectPayload.platform);
       return { success: true };
     }
 
@@ -291,6 +269,16 @@ async function handleMessage(
         });
       }
       await storage.incrementBlocked();
+      return { success: true };
+    }
+
+    case "OPEN_POPUP": {
+      await chrome.windows.create({
+        url: chrome.runtime.getURL("popup/index.html"),
+        type: "popup",
+        width: 400,
+        height: 640,
+      });
       return { success: true };
     }
 
